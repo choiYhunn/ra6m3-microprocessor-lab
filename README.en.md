@@ -69,9 +69,9 @@ flowchart TD
     B -- "Manual" --> D["Guarded up/down request"]
     C --> E["Gear 1–4"]
     D --> E
-    F["Engine error"] --> G["State protection"]
-    G --> E
 ```
+
+On the original board, `engine_error` was a status flag set from the CDS sensor reading; it showed `E` on the FND and triggered a UART diagnostic string. The public core keeps the field only; no protection logic that blocks shifting on this flag is implemented.
 
 ### Implementation
 
@@ -85,7 +85,7 @@ flowchart TD
 ## 4. My Contribution
 
 - Extracted the elevator scheduler and TCU shift logic from personal MCU coursework into public reviewable cores
-- Replaced blocking-delay flow with state transitions driven by `tick(elapsed_ms)`
+- Moved elapsed-time decisions tied to the board’s 1 ms timer counter into a `tick(elapsed_ms)` input so they can be reproduced on a PC
 - Abstracted FSP and board peripherals behind inputs, state, and function boundaries
 - Tested intermediate-floor requests, mode changes, invalid inputs, shift boundaries, and normal transitions with assertions
 - Excluded generated code, supplied course skeletons, and personal information from the public repository
@@ -96,7 +96,7 @@ This is not a copy of the complete coursework workspace or a flashable e² studi
 
 | Problem | Solution | Validation |
 |---|---|---|
-| Delay-based control blocked other input processing | Used states and elapsed time in a non-blocking `tick` design | Fed sequential time steps and checked each transition |
+| Timer-bound state transitions were hard to reproduce without the board | Used a non-blocking `tick` design that takes elapsed time as input | Fed sequential time steps and checked each transition |
 | Request order was unclear when a new request arrived during travel | Added a `pending` buffer and direction-priority scheduling | Tested intermediate stops and remaining-request handling |
 | Arrival and door actions could overlap | Waited explicitly in `ARRIVED` for audio completion | Asserted state before and after the completion signal |
 | Automatic shifting could hunt around a threshold | Separated upshift and downshift thresholds | Repeated boundary-throttle input and checked gear stability |
@@ -121,7 +121,16 @@ gcc -std=c11 -Wall -Wextra -Werror -pedantic \
 ./build/test_elevator
 ```
 
-The tests use standard C `assert` and require no external test framework.
+The tests use standard C `assert` and require no external test framework. On success they print `TCU tests passed` and `Elevator tests passed` and exit with status 0. (Verified on 2026-10-20 with GCC 13, also with `-fsanitize=address,undefined`.)
+
+### What was validated on the board and what on the host
+
+| Scope | Original EK-RA6M3 submission | This repository (host) |
+|---|---|---|
+| Elevator state transitions and request scheduling | Implemented, built, and submitted for the board | C11 core + assertion tests |
+| TCU modes and automatic/manual shift policy | Implemented, built, and submitted for the board | C11 core + assertion tests |
+| IRQ, AGT/GPT timers, PWM, ADC, UART, CAN, DAC, FND | Used on the board | Not included (out of scope) |
+| Per-scenario pass records | Build outputs exist, but no per-scenario pass log survives | — |
 
 ## 7. Coursework Coverage
 

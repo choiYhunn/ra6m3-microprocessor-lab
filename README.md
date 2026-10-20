@@ -69,9 +69,9 @@ flowchart TD
     B -- "Manual" --> D["Guarded up/down request"]
     C --> E["Gear 1–4"]
     D --> E
-    F["Engine error"] --> G["State protection"]
-    G --> E
 ```
+
+`engine_error`는 원래 보드에서 CDS 센서 값으로 설정되어 FND에 `E`를 표시하고 UART 진단 문자열을 보내던 상태 플래그입니다. 공개 core에서는 상태 필드만 유지하며, 이 플래그가 변속을 막는 보호 로직은 구현되어 있지 않습니다.
 
 ### 구현 내용
 
@@ -85,7 +85,7 @@ flowchart TD
 ## 4. My Contribution
 
 - MCU 수업에서 작성한 엘리베이터 scheduling과 TCU 변속 로직을 공개 가능한 core로 분리
-- blocking delay 중심 흐름을 `tick(elapsed_ms)` 기반 상태 전환으로 표현
+- 보드의 1 ms timer 카운터에 묶여 있던 경과 시간 판단을 `tick(elapsed_ms)` 입력으로 옮겨 PC에서 재현 가능하게 함
 - FSP·보드 peripheral 의존성을 입력, 상태와 함수 경계로 추상화
 - 정상 전환뿐 아니라 중간층 요청, mode 변경, 잘못된 입력과 변속 경계를 assertion으로 검증
 - 원본 제출물에 포함된 생성 코드·강의 skeleton과 개인정보를 공개 대상에서 제외
@@ -96,7 +96,7 @@ flowchart TD
 
 | 문제 | 해결 | 검증 |
 |---|---|---|
-| `delay` 기반 제어는 다른 입력 처리를 막음 | 상태와 경과 시간을 이용한 non-blocking `tick` 구조 | 여러 시간 단계를 순서대로 입력해 상태 전환 확인 |
+| 보드 timer에 묶인 상태 전환은 보드 없이 재현하기 어려움 | 경과 시간을 입력으로 받는 non-blocking `tick` 구조 | 여러 시간 단계를 순서대로 입력해 상태 전환 확인 |
 | 이동 중 추가 요청 처리 순서가 불명확 | `pending` buffer와 방향 우선 scheduling 적용 | 이동 방향의 중간층 정차와 남은 요청 처리 test |
 | 도착과 문 동작이 동시에 실행될 수 있음 | `ARRIVED`에서 음원 완료를 명시적으로 기다림 | audio 완료 전후 상태를 분리해 assertion |
 | 자동 변속 경계에서 gear가 반복 변경될 수 있음 | up/down threshold를 분리 | 경계 throttle을 반복 입력해 gear 유지 확인 |
@@ -121,7 +121,16 @@ gcc -std=c11 -Wall -Wextra -Werror -pedantic \
 ./build/test_elevator
 ```
 
-테스트는 외부 framework 없이 표준 C `assert`를 사용합니다.
+테스트는 외부 framework 없이 표준 C `assert`를 사용합니다. 성공하면 각각 `TCU tests passed`, `Elevator tests passed`를 출력하고 종료 코드 0을 반환합니다. (2026-10-20 GCC 13 및 `-fsanitize=address,undefined` 빌드에서 통과 확인)
+
+### 무엇이 보드에서, 무엇이 host에서 검증되었나
+
+| 범위 | 원래 EK-RA6M3 제출물 | 이 저장소 (host) |
+|---|---|---|
+| 엘리베이터 상태 전환·요청 스케줄링 | 보드용으로 구현·빌드·제출 | C11 core + assertion test |
+| TCU 모드·자동/수동 변속 정책 | 보드용으로 구현·빌드·제출 | C11 core + assertion test |
+| IRQ, AGT/GPT timer, PWM, ADC, UART, CAN, DAC, FND | 보드에서 사용 | 포함하지 않음 (검증 범위 밖) |
+| 시나리오별 통과 기록 | 빌드 산출물은 있으나 시나리오별 통과 로그는 남아 있지 않음 | — |
 
 ## 7. 수업 범위
 
