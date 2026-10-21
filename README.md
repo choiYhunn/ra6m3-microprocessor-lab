@@ -19,6 +19,7 @@
 - [`src/tcu.c`](src/tcu.c) · [`include/tcu.h`](include/tcu.h): TCU 모드·변속 core
 - [`tests/test_tcu.c`](tests/test_tcu.c): 자동·수동 변속 조건 test
 - [`docs/lab-index.md`](docs/lab-index.md): 주차별 수업 내용과 공개 처리 범위
+- [`board_original/`](board_original): 재구성 전 EK-RA6M3 제출 원본 애플리케이션 source (FSP·음원 제외, flash 불가)
 
 ## 1. 프로젝트 개요
 
@@ -159,6 +160,9 @@ gcc -std=c11 -Wall -Wextra -Werror -pedantic \
 │  └─ test_tcu.c
 ├─ docs/
 │  └─ lab-index.md
+├─ board_original/            # EK-RA6M3 제출 원본 app source (FSP·음원 제외)
+│  ├─ midterm_tcu/src/        # hal_entry·tcu·motor·fnd
+│  └─ final_elevator/src/     # hal_entry·elevator·motor·fnd
 ├─ README.md
 └─ README.en.md
 ```
