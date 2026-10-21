@@ -104,7 +104,7 @@ This is not a copy of the complete coursework workspace or a flashable e² studi
 
 ## 6. Build and Test
 
-On Linux/macOS or another environment with GCC:
+With GCC or Clang on Linux/macOS, `make test` builds and runs both tests (`make clean` removes the build directory; `make test CC=clang` switches compilers). Without Make:
 
 ```bash
 mkdir -p build

@@ -104,7 +104,7 @@ flowchart TD
 
 ## 6. 빌드 및 테스트
 
-Linux/macOS 또는 GCC가 설치된 환경에서 다음과 같이 확인할 수 있습니다.
+Linux/macOS 또는 GCC/Clang이 설치된 환경에서 `make test`로 두 테스트를 빌드·실행할 수 있습니다(`make clean`으로 정리, `make test CC=clang`으로 컴파일러 변경). Make 없이 직접 실행하려면 다음과 같습니다.
 
 ```bash
 mkdir -p build
