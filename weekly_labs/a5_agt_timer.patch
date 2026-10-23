@@ -1,0 +1,108 @@
+--- skeleton/src/hal_entry.c
++++ submitted/src/hal_entry.c
+@@ -4,6 +4,9 @@ FSP_CPP_HEADER
+ void R_BSP_WarmStart(bsp_warm_start_event_t event);
+ FSP_CPP_FOOTER
+ 
++volatile bool is_running = true;
++volatile uint8_t led_step = 0;
++volatile uint8_t cycle_count = 0;
+ uint8_t fnd_number[10] = {0x7E, 0x30, 0X6D, 0x79, 0x33, 0x5B, 0x5F, 0x70, 0x7F, 0x7B};
+ 
+ bsp_io_port_pin_t fnd_segment_ledindex[7] = {
+@@ -29,11 +32,31 @@ bsp_io_port_pin_t led_index[4] = {
+ void hal_entry(void)
+ {
+     /* TODO: add your own code here */
+-
+-
+-
+-
+-
++    Segment_Initial_Setting();
++        LED_Initial_Setting();
++
++        R_ICU_ExternalIrqOpen(&g_external_irq11_ctrl, &g_external_irq11_cfg);
++        R_ICU_ExternalIrqEnable(&g_external_irq11_ctrl);
++
++        R_AGT_Open(&g_timer0_ctrl, &g_timer0_cfg);
++        R_AGT_Start(&g_timer0_ctrl);
++
++        while(1)
++        {
++            if (!is_running & cycle_count<10)
++            {
++                uint8_t display_data[4] = {0, 0, cycle_count / 10, cycle_count % 10};
++                for(uint8_t i = 0; i < 4; i++) {
++                    FND_DisplayNum(i, display_data[i]);
++                    R_BSP_SoftwareDelay(2, BSP_DELAY_UNITS_MILLISECONDS);
++                }
++            }
++            else
++            {
++                Segment_Initial_Setting();
++                R_BSP_SoftwareDelay(4, BSP_DELAY_UNITS_MILLISECONDS);
++            }
++        }
+ 
+     /********************************/
+ 
+@@ -43,7 +66,58 @@ void hal_entry(void)
+ #endif
+ }
+ 
++void R_AGT_Callback(timer_callback_args_t *p_args)
++{
++    FSP_PARAMETER_NOT_USED(p_args);
++    if (cycle_count >=10){
++        LED_Initial_Setting();
++        R_AGT_Stop(&g_timer0_ctrl);
++        is_running = false;
++        return;
++    }
++    if(is_running){
++        LED_Initial_Setting();
++        R_IOPORT_PinWrite(&g_ioport_ctrl, led_index[led_step], BSP_IO_LEVEL_LOW);
++        led_step++;
++        if (led_step >= 4) {
++            led_step = 0;
++            cycle_count++;
++        }
++    }
++}
+ 
++void R_IRQ11_Interrupt(external_irq_callback_args_t *p_args)
++{
++    FSP_PARAMETER_NOT_USED(p_args);
++    if (cycle_count < 10) {
++        is_running = !is_running;
++        if (!is_running) {
++            LED_Initial_Setting();
++            R_AGT_Stop(&g_timer0_ctrl);
++        }
++        else{
++            R_AGT_Start(&g_timer0_ctrl);
++        }
++    }
++}
++
++void FND_DisplayNum(uint8_t digit, uint8_t num)
++{
++    Segment_Initial_Setting();
++
++    uint8_t output_data = fnd_number[num];
++
++    for(int i = 0; i < 7; i++) {
++        bsp_io_level_t level = (output_data & (1 << (6 - i))) ? BSP_IO_LEVEL_LOW : BSP_IO_LEVEL_HIGH;
++        R_IOPORT_PinWrite(&g_ioport_ctrl, fnd_segment_ledindex[i], level);
++    }
++    switch(digit) {
++        case 0: R_IOPORT_PinWrite(&g_ioport_ctrl, BSP_IO_PORT_03_PIN_05, BSP_IO_LEVEL_HIGH); break;
++        case 1: R_IOPORT_PinWrite(&g_ioport_ctrl, BSP_IO_PORT_03_PIN_06, BSP_IO_LEVEL_HIGH); break;
++        case 2: R_IOPORT_PinWrite(&g_ioport_ctrl, BSP_IO_PORT_03_PIN_07, BSP_IO_LEVEL_HIGH); break;
++        case 3: R_IOPORT_PinWrite(&g_ioport_ctrl, BSP_IO_PORT_03_PIN_08, BSP_IO_LEVEL_HIGH); break;
++    }
++}
+ 
+ void Segment_Initial_Setting()
+ {
