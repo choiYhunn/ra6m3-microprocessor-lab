@@ -15,6 +15,7 @@ My original board-level application code is kept in [`board_original/`](board_or
 - [`src/tcu.c`](src/tcu.c) · [`include/tcu.h`](include/tcu.h): TCU mode and shifting core
 - [`tests/test_tcu.c`](tests/test_tcu.c): automatic and manual shift-condition tests
 - [`docs/lab-index.md`](docs/lab-index.md): coursework topics and disclosure treatment
+- [`weekly_labs/`](weekly_labs): weekly advanced assignments as diffs against the course skeleton (register-level interrupts, timers, PWM, ADC, UART)
 
 ## Project Overview
 
@@ -132,9 +133,9 @@ The tests use standard C `assert` and require no external test framework. On suc
 
 | Area | Evidenced topic | Public treatment |
 |---|---|---|
-| Week 3 | External interrupts and callback I/O | Documentation only |
-| Weeks 4–5 | AGT/GPT timers and DC/servo PWM | Documentation only |
-| Weeks 6–7 | ADC/DAC and SCI-UART | Documentation only |
+| Week 3 | External interrupts (NVIC, ICU, PFS registers) | [my diff](weekly_labs/a4_interrupt.patch) |
+| Weeks 4–5 | AGT timer state machine, GPT servo PWM | [diff](weekly_labs/a5_agt_timer.patch) · [diff](weekly_labs/a6_gpt_servo_pwm.patch) |
+| Weeks 6–7 | ADC input → servo/motor PWM, SCI-UART | [diff](weekly_labs/a7_adc_motor_servo.patch) · [diff](weekly_labs/a8_uart_quiz.patch) |
 | Midterm project | TCU state, automatic/manual shifting, output | Portable TCU core |
 | Final project | Elevator scheduling, motor/door, communication, audio | Portable elevator core |
 
@@ -155,6 +156,8 @@ See [`docs/lab-index.md`](docs/lab-index.md) for the detailed index.
 │  └─ test_tcu.c
 ├─ docs/
 │  └─ lab-index.md
+├─ board_original/            # original EK-RA6M3 application source (no FSP, no audio)
+├─ weekly_labs/               # weekly assignments as diffs against the course skeleton
 ├─ README.md
 └─ README.en.md
 ```

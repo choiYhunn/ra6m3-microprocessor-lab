@@ -16,6 +16,7 @@ Renesas EK-RA6M3 마이크로프로세서 실습에서 만든 **3층 엘리베�
 - [`tests/test_tcu.c`](tests/test_tcu.c): 자동·수동 변속 조건 test
 - [`docs/lab-index.md`](docs/lab-index.md): 주차별 수업 내용과 공개 처리 범위
 - [`board_original/`](board_original): 재구성 전 EK-RA6M3 제출 원본 애플리케이션 source (FSP·음원 제외, flash 불가)
+- [`weekly_labs/`](weekly_labs): 주차별 심화 과제 — 수업 skeleton 대비 본인 변경분 patch (인터럽트·타이머·PWM·ADC·UART를 레지스터 수준으로 설정)
 
 ## 프로젝트 개요
 
@@ -133,9 +134,9 @@ gcc -std=c11 -Wall -Wextra -Werror -pedantic \
 
 | 구분 | 확인된 주제 | 공개 처리 |
 |---|---|---|
-| 3주차 | 외부 interrupt, callback I/O | 문서화만 수행 |
-| 4–5주차 | AGT/GPT timer, DC/servo motor PWM | 문서화만 수행 |
-| 6–7주차 | ADC/DAC, SCI-UART | 문서화만 수행 |
+| 3주차 | 외부 interrupt (NVIC·ICU·PFS register) | [본인 변경분 patch](weekly_labs/a4_interrupt.patch) |
+| 4–5주차 | AGT 타이머 상태기계, GPT 서보 PWM | [patch](weekly_labs/a5_agt_timer.patch) · [patch](weekly_labs/a6_gpt_servo_pwm.patch) |
+| 6–7주차 | ADC 입력 → 서보·모터 PWM, SCI-UART | [patch](weekly_labs/a7_adc_motor_servo.patch) · [patch](weekly_labs/a8_uart_quiz.patch) |
 | 중간 프로젝트 | TCU 상태·자동/수동 변속·출력 | portable TCU core 공개 |
 | 기말 프로젝트 | 엘리베이터 scheduling·motor/door·통신·음원 | portable elevator core 공개 |
 
@@ -159,6 +160,7 @@ gcc -std=c11 -Wall -Wextra -Werror -pedantic \
 ├─ board_original/            # EK-RA6M3 제출 원본 app source (FSP·음원 제외)
 │  ├─ midterm_tcu/src/        # hal_entry·tcu·motor·fnd
 │  └─ final_elevator/src/     # hal_entry·elevator·motor·fnd
+├─ weekly_labs/               # 주차별 과제: skeleton 대비 본인 변경분 (.patch 5개)
 ├─ README.md
 └─ README.en.md
 ```

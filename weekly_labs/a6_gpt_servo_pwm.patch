@@ -1,0 +1,116 @@
+--- skeleton/src/hal_entry.c
++++ submitted/src/hal_entry.c
+@@ -48,6 +48,7 @@ typedef struct _operation_state {
+ 
+ volatile operation_state state;
+ volatile servo_state rotate_mode;
++volatile int current_angle = 0;
+ 
+ static const bsp_io_port_pin_t led_pin[4] = {
+                                 BSP_IO_PORT_10_PIN_08,
+@@ -84,10 +85,11 @@ void hal_entry(void)
+     Initial_Setting();
+ 
+     ////////////// YOU MUST EDIT ONLY HERE ABOUT Advanced Assignment ///////////////
+-
+-
+-
+-
++    R_GPT_Setting();
++    R_GPT0_Setting();
++    R_AGT1_Setting();
++    R_GPIO_Setting();
++    while(1);
+ 
+     ///////////////////////////////////////////////////////////////////////////
+ 
+@@ -129,7 +131,11 @@ void R_GPT0_Setting() // Servo Motor PWM Generator
+     ////////////// YOU MUST EDIT ONLY HERE ABOUT Advanced Assignment ///////////////
+ 
+ 
++        R_GPT0->GTIOR_b.GTIOA = 9U; // Compare Matching Output Control Setting
++        R_GPT0->GTIOR_b.OAE = 1U; // GPIOCA Output Pin Enable
+ 
++        R_GPT0->GTCCR[0] = (uint32_t)(Timer_Period_20ms * 0.03); // GTCCR Initial Setting (Angle = 0[degree])
++        R_GPT0->GTCR_b.CST = 1U;
+ 
+ 
+     ///////////////////////////////////////////////////////////////////////////
+@@ -142,11 +148,11 @@ void R_AGT1_Setting()
+ 
+     ////////////// YOU MUST EDIT ONLY HERE ABOUT Advanced Assignment ///////////////
+ 
+-    R_AGT1->AGTMR1 |= ; // AGT1 Mode Register 1 Setting
+-    R_AGT1->AGTMR2 = ; // AGT1 Mode Register 2 Setting
+-    R_AGT1->AGT = ;
++    R_AGT1->AGTMR1 = 0x40; // AGT1 Mode Register 1 Setting
++    R_AGT1->AGTMR2 = 0x00; // AGT1 Mode Register 2 Setting
++    R_AGT1->AGT = 6553 ;
+ 
+-    R_AGT_Start(&g_timer1_ctrl);
++//    R_AGT_Start(&g_timer1_ctrl);
+     ///////////////////////////////////////////////////////////////////////////
+ }
+ 
+@@ -159,7 +165,15 @@ void R_IRQ14_ISR(external_irq_callback_args_t *p_args)
+ {
+     FSP_PARAMETER_NOT_USED (p_args);
+     ////////////// YOU MUST EDIT ONLY HERE ABOUT Advanced Assignment ///////////////
+-
++    if (state.task_mode_14 == 0) {
++        state.task_mode_14 = 1;
++        R_IOPORT_PinWrite(&g_ioport_ctrl, led_pin[3], BSP_IO_LEVEL_LOW);
++        current_angle = 0;
++        rotate_mode = SERVO_ROTATE_RIGHT;
++        R_AGT1->AGT = 6553;
++        R_AGT1->AGTCR_b.TUNDF = 0U;
++        R_AGT1->AGTCR_b.TSTART = 1U;
++        }
+ 
+ 
+ 
+@@ -173,7 +187,24 @@ void R_AGT_Callback(timer_callback_args_t *p_args)
+     
+     ////////////// YOU MUST EDIT ONLY HERE ABOUT Advanced Assignment ///////////////
+     // Use register to enable AGT1 interrupt
+-
++    R_AGT1->AGTCR_b.TUNDF = 0U;
++        if (rotate_mode == SERVO_ROTATE_RIGHT) {
++            current_angle += ANGLE_UNIT;
++            if (current_angle >= MAX_SERVO_DEGREE) {
++                rotate_mode = SERVO_ROTATE_LEFT;
++            }
++        }
++        else {
++            current_angle -= ANGLE_UNIT;
++            if (current_angle <= 0) {
++                current_angle = 0;
++                R_AGT1->AGTCR_b.TSTART = 0U;
++                R_IOPORT_PinWrite(&g_ioport_ctrl, led_pin[3], BSP_IO_LEVEL_HIGH);
++                state.task_mode_14 = 0;
++            }
++        }
++        double duty_rate = 0.03 + (0.09 * ((double)current_angle / 180.0));
++        R_GPT0->GTCCR[0] = (uint32_t)(Timer_Period_20ms * duty_rate);
+ 
+ 
+     ///////////////////////////////////////////////////////////////////////////
+@@ -224,9 +255,17 @@ void IRQ_Enable()
+     
+     ////////////// YOU MUST EDIT ONLY HERE ABOUT Advanced Assignment ///////////////
+     // Use register to enable only (switch 4) interrupt
++        R_PMISC->PWPR_b.B0WI = 0U;
++        R_PMISC->PWPR_b.PFSWE = 1U;
++        R_PFS->PORT[0].PIN[10].PmnPFS_b.ISEL = 1U;
++        R_PFS->PORT[0].PIN[10].PmnPFS_b.PSEL = 6U;
++        R_PMISC->PWPR_b.PFSWE = 0U;
++        R_PMISC->PWPR_b.B0WI = 1U;
+ 
+ 
+-
++        R_ICU->IELSR_b[0].IELS =0x0F;
++        NVIC->ISER[0] = (uint32_t)1U;  // 0번 통로 인터럽트 허용
++        NVIC->IP[0]   = (uint8_t)0x0C; // Priority 설정
+ 
+ 
+ 

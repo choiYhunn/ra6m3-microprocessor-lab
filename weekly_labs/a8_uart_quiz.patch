@@ -1,0 +1,59 @@
+--- skeleton/src/hal_entry.c
++++ submitted/src/hal_entry.c
+@@ -64,6 +64,11 @@ void hal_entry(void)
+     R_FND_Reset();
+ 
+     /* TODO: add your own code here */
++    R_BSP_SoftwareDelay(100, BSP_DELAY_UNITS_MILLISECONDS);
++    quiz_count=0;
++    correct_count=0;
++    strcpy(voca_now,voca[rand()%50]);
++    user_uart_write(voca_now,strlen(voca_now));
+ 
+     while(true)
+     {
+@@ -92,8 +97,12 @@ void R_IRQ11_Interrupt(external_irq_callback_args_t *p_args)
+     FSP_PARAMETER_NOT_USED(p_args);
+     R_ICU->IELSR_b[0].IR = (uint32_t)0U;
+ 	/* TODO: add your own code here */
+-	
+-	
++	quiz_count=0;
++	correct_count=0;
++	strcpy(voca_now,voca[rand()%50]);
++	user_uart_write(voca_now,strlen(voca_now));
++	msg_idx=0;
++	memset(msg_data,'0',MESSAGE_MAX_SIZE);
+     R_FND_Reset();
+ }
+ 
+@@ -107,14 +116,25 @@ void user_uart_callback(uart_callback_args_t *p_args)
+                 break;
+             case LINE_FEED:
+                 /* TODO: add your own code here */
+-				
+-				
++                msg_data[msg_idx]='\0';
++
++                if(!strcmp(voca_now,msg_data)){
++                    correct_count++;
++                }
++                quiz_count++;
++                strcpy(voca_now,voca[rand()%50]);
++                user_uart_write(voca_now,strlen(voca_now));
++                msg_idx=0;
++				memset(msg_data,0, MESSAGE_MAX_SIZE);
+ 				
+                 break;
+             case Backspace:
+                 /* TODO: add your own code here */
+-				
+-                break;
++                if(msg_idx>0){
++                    msg_data[--msg_idx]='\0';
++                    R_SCI_UART_Write(&g_uart0_ctrl,(unsigned char *)" \b",2);
++                }
++				break;
+             default:
+                 msg_data[msg_idx++] = (char)p_args->data; // If Receive data Register is charged, take some data in byte.
+                 break;

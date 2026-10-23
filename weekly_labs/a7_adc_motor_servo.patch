@@ -1,0 +1,85 @@
+--- skeleton/src/hal_entry.c
++++ submitted/src/hal_entry.c
+@@ -11,6 +11,7 @@ void Rotate_Servo();
+ void Cds_Sensor_Read();
+ void Calc_Degree();
+ void Thermal_Sensor_Read();
++void Update_Motor_PWM(int8_t step);
+ FSP_CPP_FOOTER
+ 
+ volatile uint8_t Accelerator, Brake;
+@@ -39,6 +40,10 @@ uint16_t potent_max = 1000;
+ uint16_t potent_min = 0;
+ uint16_t temperature_mV; int16_t temperature;
+ uint16_t cds_data;
++
++volatile int8_t speed_step = 0;
++volatile uint32_t agt_tick_count = 0;
++
+ typedef enum {
+     CDS_light = 0,
+     CDS_dark = 1,
+@@ -81,28 +86,49 @@ void hal_entry(void)
+ 	
+     /* TODO: add your own code here */
+     while(1){
+-
+-
+-
+-
+-        if(Accelerator == 1){
+-
++        ADC_Read_and_Convert();
++        Calc_Degree();
++        Rotate_Servo();
++        if(brightness==CDS_dark){
++            speed_step=0;
++            Update_Motor_PWM(speed_step);
+         }
+-
+-        if(Brake == 1){
+-
++        else{
++            if(Accelerator == 1){
++                if (agt_tick_count >= 5) {
++                    if (speed_step < 20) speed_step++;
++                    Update_Motor_PWM(speed_step);
++                    agt_tick_count = 0;
++                        }
++            }
++
++            else if(Brake == 1){
++                if (agt_tick_count >= 4) {
++                    if(speed_step>0){
++                        speed_step--;
++                    }
++                    Update_Motor_PWM(speed_step);
++                    agt_tick_count = 0;
++            }
+         }
+-
+-        if(brightness == 1){
+-
+         }
++        R_BSP_SoftwareDelay(10, BSP_DELAY_UNITS_MILLISECONDS);
++        agt_tick_count++;
+     }
++#if BSP_TZ_SECURE_BUILD
++    /* Enter non-secure code */
++    R_BSP_NonSecureEnter();
++#endif
++}
++void Update_Motor_PWM(int8_t step)
++{
++    double target_duty = 1-(double)(step * 5) / 100.0;
++    R_GPT3->GTCCR[0] = (uint32_t)(Timer_Period * target_duty);
+ }
+-
+ /* TODO: add your own code here */
+ void Calc_Degree()
+ {
+-
++    degree=180-(potentiometer_mV*180)/3300;
+ }
+ 
+ void Rotate_Servo()

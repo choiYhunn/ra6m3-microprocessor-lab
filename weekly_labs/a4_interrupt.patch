@@ -1,0 +1,96 @@
+--- skeleton/src/hal_entry.c
++++ submitted/src/hal_entry.c
+@@ -29,7 +29,8 @@ uint8_t print_data[4] = {0xC0, 0xC0, 0xC0, 0xC0};
+ ////////////////// YOU MUST EDIT ONLY HERE ABOUT GLOBAL VARIABLE //////////////////
+ 
+ 
+-
++volatile uint8_t val_sw1 = 0;
++volatile uint8_t val_sw2 = 0;
+ 
+ 
+ ///////////////////////////////////////////////////////////////////////////////////
+@@ -60,7 +61,33 @@ void R_IRQ_Setting()
+     R_ICU_ExternalIrqOpen(&g_external_irq14_ctrl, &g_external_irq14_cfg);
+     ///////////////////////// YOU MUST EDIT CODE HERE ///////////////////////////////////
+ 
++            NVIC->ISER[0] |= (1 << 0) | (1 << 1) | (1 << 2) | (1 << 3); // NVIC Interrupt Set-Enable Register Setting (Using Exception Number)
++
++
++            R_ICU->IELSR_b[0].IELS = (uint32_t)0x0C; // ICU Event Link Select (Refer to the Table 14.4) (Port_IRQ11)
++            R_ICU->IELSR_b[1].IELS = (uint32_t)0x0D;
++            R_ICU->IELSR_b[2].IELS = (uint32_t)0x0E;
++            R_ICU->IELSR_b[3].IELS = (uint32_t)0x0F;
++
++
++
++            R_PMISC->PWPR_b.B0WI = (uint8_t)0U; // PFSWE bit Write Protection Disable
++            R_PMISC->PWPR_b.PFSWE = (uint8_t)1U; // PmnPFS Register Write Protection Disable
++
++            R_PFS->PORT[0].PIN[6].PmnPFS_HA_b.ASEL = (uint16_t)0U; // Port m/n Pin Function Select: Analog Input
++            R_PFS->PORT[0].PIN[6].PmnPFS_HA_b.ISEL = (uint16_t)1U; // Port m/n Pin Function Select: IRQ Input Mode
++
++            R_PFS->PORT[0].PIN[8].PmnPFS_HA_b.ASEL = (uint16_t)0U;
++            R_PFS->PORT[0].PIN[8].PmnPFS_HA_b.ISEL = (uint16_t)1U;
+ 
++            R_PFS->PORT[0].PIN[9].PmnPFS_HA_b.ASEL = (uint16_t)0U;
++            R_PFS->PORT[0].PIN[9].PmnPFS_HA_b.ISEL = (uint16_t)1U;
++
++            R_PFS->PORT[0].PIN[10].PmnPFS_HA_b.ASEL = (uint16_t)0U;
++            R_PFS->PORT[0].PIN[10].PmnPFS_HA_b.ISEL = (uint16_t)1U;
++
++            R_PMISC->PWPR_b.PFSWE = (uint8_t)0U;
++            R_PMISC->PWPR_b.B0WI = (uint8_t)1U;
+ 
+     /////////////////////////////////////////////////////////////////////////////////////
+ 
+@@ -71,8 +98,9 @@ void R_IRQ11_ISR(external_irq_callback_args_t *p_args)
+ {
+     FSP_PARAMETER_NOT_USED (p_args);
+     ///////////////////////// YOU MUST EDIT CODE HERE ///////////////////////////////////
+-
+-
++    R_ICU->IELSR_b[0].IR = 0U;
++    val_sw1 = (val_sw1 + 1) % 10;
++        print_data[0] = number[val_sw1];
+ 
+     /////////////////////////////////////////////////////////////////////////////////////
+ }
+@@ -81,7 +109,9 @@ void R_IRQ12_ISR(external_irq_callback_args_t *p_args)
+ {
+     FSP_PARAMETER_NOT_USED (p_args);
+     ///////////////////////// YOU MUST EDIT CODE HERE ///////////////////////////////////
+-
++    R_ICU->IELSR_b[1].IR = 0U;
++    val_sw2 = (val_sw2 + 1) % 10;
++    print_data[1] = number[val_sw2];
+ 
+ 
+     /////////////////////////////////////////////////////////////////////////////////////
+@@ -91,7 +121,10 @@ void R_IRQ13_ISR(external_irq_callback_args_t *p_args)
+ {
+     FSP_PARAMETER_NOT_USED (p_args);
+     ///////////////////////// YOU MUST EDIT CODE HERE ///////////////////////////////////
+-
++    R_ICU->IELSR_b[2].IR = 0U;
++    uint8_t result = val_sw1 * val_sw2;
++    print_data[2] = number[result / 10];
++    print_data[3] = number[result % 10];
+ 
+ 
+     /////////////////////////////////////////////////////////////////////////////////////
+@@ -101,7 +134,13 @@ void R_IRQ14_ISR(external_irq_callback_args_t *p_args)
+ {
+     FSP_PARAMETER_NOT_USED (p_args);
+     ///////////////////////// YOU MUST EDIT CODE HERE ///////////////////////////////////
+-
++    R_ICU->IELSR_b[3].IR = 0U;
++    val_sw1 = 0;
++    val_sw2 = 0;
++    print_data[0] = number[0];
++    print_data[1] = number[0];
++    print_data[2] = number[0];
++    print_data[3] = number[0];
+ 
+ 
+     /////////////////////////////////////////////////////////////////////////////////////
