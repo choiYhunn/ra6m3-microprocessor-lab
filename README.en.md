@@ -2,17 +2,13 @@
 
 [한국어](README.md) | [English](README.en.md)
 
-> Portable C11 state-machine extractions of an elevator controller and an educational TCU built during Renesas EK-RA6M3 coursework. The control cores compile and run on a host PC without publishing FSP-generated projects or course skeletons.
+These are two Renesas EK-RA6M3 coursework projects: a **three-floor elevator controller** and an **educational transmission controller (TCU)**.
 
-| Item | Details |
-|---|---|
-| Public projects | Three-floor elevator controller; four-speed educational TCU |
-| Focus | State machines, non-blocking control, timer-driven transitions, peripheral abstraction |
-| Original target | Renesas EK-RA6M3 / R7FA6M3AH3CFC |
-| Public validation | ISO C11 build, assertion-based host tests |
-| Excluded | FSP-generated code, course skeletons, pin configuration, personal data, raw audio |
+I extracted the control logic I wrote for the board into portable C11 modules. State transitions and request handling can be checked with host-side `assert` tests; those tests do **not** verify actual IRQ, PWM or CAN timing on the board.
 
-## Quick Navigation
+My original board-level application code is kept in [`board_original/`](board_original). FSP-generated code, instructor-provided material and personal files are excluded.
+
+## Files
 
 - [`src/elevator.c`](src/elevator.c) · [`include/elevator.h`](include/elevator.h): elevator state and scheduling core
 - [`tests/test_elevator.c`](tests/test_elevator.c): elevator transition and request-handling tests
@@ -20,7 +16,7 @@
 - [`tests/test_tcu.c`](tests/test_tcu.c): automatic and manual shift-condition tests
 - [`docs/lab-index.md`](docs/lab-index.md): coursework topics and disclosure treatment
 
-## 1. Project Overview
+## Project Overview
 
 The application logic was separated from board-specific FSP initialization and peripheral calls, then reconstructed as small C modules driven only by inputs and elapsed time. The control flow can therefore be reviewed and tested without the board, while generated code and course materials remain private.
 
@@ -32,7 +28,7 @@ flowchart LR
     C -. "Board integration boundary" .-> P["IRQ · AGT/GPT · PWM · UART · CAN · DAC"]
 ```
 
-## 2. Elevator Controller
+## Elevator Controller
 
 ### State structure
 
@@ -58,7 +54,7 @@ stateDiagram-v2
 
 The original board submission connected floor-button IRQs, AGT timekeeping, GPT motor/servo PWM, UART GUI commands, CAN status frames, FND multiplexing, and DAC arrival audio. The public core replaces those peripherals with inputs and observable state.
 
-## 3. Educational TCU
+## Educational TCU
 
 ### Control flow
 
@@ -82,7 +78,7 @@ On the original board, `engine_error` was a status flag set from the CDS sensor 
 - Rejection of invalid manual shift requests
 - Small functions for initialization, lever cycling, mode switching, and shift policy
 
-## 4. My Contribution
+## Implementation and extraction
 
 - Extracted the elevator scheduler and TCU shift logic from personal MCU coursework into public reviewable cores
 - Moved elapsed-time decisions tied to the board’s 1 ms timer counter into a `tick(elapsed_ms)` input so they can be reproduced on a PC
@@ -92,7 +88,7 @@ On the original board, `engine_error` was a status flag set from the CDS sensor 
 
 This is not a copy of the complete coursework workspace or a flashable e² studio project. It is a portfolio extraction of personally implemented application-control logic.
 
-## 5. Problems and Solutions
+## Problems and Solutions
 
 | Problem | Solution | Validation |
 |---|---|---|
@@ -102,7 +98,7 @@ This is not a copy of the complete coursework workspace or a flashable e² studi
 | Automatic shifting could hunt around a threshold | Separated upshift and downshift thresholds | Repeated boundary-throttle input and checked gear stability |
 | Control logic was difficult to review without board code | Replaced peripheral calls with input/output interfaces | Built with strict host-compiler warning options |
 
-## 6. Build and Test
+## Build and Test
 
 With GCC or Clang on Linux/macOS, `make test` builds and runs both tests (`make clean` removes the build directory; `make test CC=clang` switches compilers). Without Make:
 
@@ -132,7 +128,7 @@ The tests use standard C `assert` and require no external test framework. On suc
 | IRQ, AGT/GPT timers, PWM, ADC, UART, CAN, DAC, FND | Used on the board | Not included (out of scope) |
 | Per-scenario pass records | Build outputs exist, but no per-scenario pass log survives | — |
 
-## 7. Coursework Coverage
+## Coursework Coverage
 
 | Area | Evidenced topic | Public treatment |
 |---|---|---|
@@ -144,7 +140,7 @@ The tests use standard C `assert` and require no external test framework. On suc
 
 See [`docs/lab-index.md`](docs/lab-index.md) for the detailed index.
 
-## 8. Repository Structure
+## Repository Structure
 
 ```text
 .
@@ -163,7 +159,7 @@ See [`docs/lab-index.md`](docs/lab-index.md) for the detailed index.
 └─ README.en.md
 ```
 
-## 9. Limitations and Disclosure
+## Limitations and Disclosure
 
 - The repository is not directly flashable to an RA6M3 board.
 - Hardware pin maps, FSP instances, and peripheral adapters must be recreated for the target board.
@@ -171,6 +167,6 @@ See [`docs/lab-index.md`](docs/lab-index.md) for the detailed index.
 - Renesas FSP/RA-generated source, IDE metadata, course PDFs/examples/installers, and sample videos are excluded.
 - Submission filenames containing personal identifiers and the original PCM arrival audio are excluded.
 
-## 10. Attribution
+## Attribution
 
 The public cores and tests were extracted from personally implemented application logic in my coursework submissions. Renesas FSP-generated code and instructor-provided skeletons are not included, and this repository does not grant a new license or usage rights for those materials.
