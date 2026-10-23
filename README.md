@@ -2,17 +2,13 @@
 
 [한국어](README.md) | [English](README.en.md)
 
-> Renesas EK-RA6M3 수업에서 구현한 엘리베이터 제어기와 교육용 TCU의 핵심 로직을 **portable C11 상태 머신**으로 분리하고, PC에서 컴파일·검증할 수 있게 정리한 저장소입니다.
+Renesas EK-RA6M3 마이크로프로세서 실습에서 만든 **3층 엘리베이터 제어기**와 **교육용 변속 제어기(TCU)**를 정리했습니다.
 
-| 항목 | 내용 |
-|---|---|
-| 공개 프로젝트 | 3층 엘리베이터 제어기, 4단 교육용 TCU |
-| 핵심 역량 | 상태 머신, non-blocking 제어, timer 기반 전환, peripheral 추상화 |
-| 원래 장치 | Renesas EK-RA6M3 / R7FA6M3AH3CFC |
-| 공개 검증 | ISO C11 build, assertion 기반 host test |
-| 제외 범위 | FSP 생성 코드, 수업 skeleton, pin 설정, 개인정보, 원본 음원 |
+보드용 C/FSP 애플리케이션에서 직접 작성한 상태 제어 로직을 분리해 portable C11로 다시 구성했습니다. 상태 전환과 요청 처리는 PC에서 `assert` 테스트로 확인할 수 있습니다. 실제 보드의 IRQ·PWM·CAN 타이밍을 이 테스트가 검증하는 것은 아닙니다.
 
-## 빠른 탐색
+원래 보드 애플리케이션의 본인 작성 소스는 [`board_original/`](board_original)에 두었고, Renesas FSP 생성 코드·수업 제공 자료·개인정보는 포함하지 않았습니다.
+
+## 파일 안내
 
 - [`src/elevator.c`](src/elevator.c) · [`include/elevator.h`](include/elevator.h): 엘리베이터 상태·스케줄링 core
 - [`tests/test_elevator.c`](tests/test_elevator.c): 엘리베이터 전환과 요청 처리 test
@@ -21,7 +17,7 @@
 - [`docs/lab-index.md`](docs/lab-index.md): 주차별 수업 내용과 공개 처리 범위
 - [`board_original/`](board_original): 재구성 전 EK-RA6M3 제출 원본 애플리케이션 source (FSP·음원 제외, flash 불가)
 
-## 1. 프로젝트 개요
+## 프로젝트 개요
 
 보드 종속적인 FSP 초기화와 peripheral 호출 사이에 있던 애플리케이션 로직을 추출해, 입력과 시간만으로 상태가 변하는 작은 C 모듈로 재구성했습니다. 이를 통해 실제 보드 없이도 제어 흐름을 읽고 테스트할 수 있으며, 공개하면 안 되는 생성 코드와 수업 자료는 제외했습니다.
 
@@ -33,7 +29,7 @@ flowchart LR
     C -. "Board integration boundary" .-> P["IRQ · AGT/GPT · PWM · UART · CAN · DAC"]
 ```
 
-## 2. 엘리베이터 제어기
+## 엘리베이터 제어기
 
 ### 상태 구조
 
@@ -59,7 +55,7 @@ stateDiagram-v2
 
 원래 보드 제출물은 층 버튼 IRQ, AGT 시간 관리, GPT motor/servo PWM, UART GUI 명령, CAN 상태 frame, FND multiplexing과 DAC 도착 음원을 연결했습니다. 공개 core에서는 peripheral을 입력과 관측 가능한 상태로 치환했습니다.
 
-## 3. 교육용 TCU
+## 교육용 TCU
 
 ### 제어 흐름
 
@@ -83,7 +79,7 @@ flowchart TD
 - 허용 범위를 벗어난 수동 변속 요청 차단
 - 초기화, lever 순환, mode 전환과 변속 정책을 작은 함수로 분리
 
-## 4. My Contribution
+## 작성·재구성한 부분
 
 - MCU 수업에서 작성한 엘리베이터 scheduling과 TCU 변속 로직을 공개 가능한 core로 분리
 - 보드의 1 ms timer 카운터에 묶여 있던 경과 시간 판단을 `tick(elapsed_ms)` 입력으로 옮겨 PC에서 재현 가능하게 함
@@ -93,7 +89,7 @@ flowchart TD
 
 이 저장소는 수업 전체 프로젝트나 flash 가능한 e² studio workspace의 복사본이 아니라, 직접 구현한 애플리케이션 제어 로직을 검토 가능하게 추출한 포트폴리오입니다.
 
-## 5. 주요 문제와 해결
+## 주요 문제와 해결
 
 | 문제 | 해결 | 검증 |
 |---|---|---|
@@ -103,7 +99,7 @@ flowchart TD
 | 자동 변속 경계에서 gear가 반복 변경될 수 있음 | up/down threshold를 분리 | 경계 throttle을 반복 입력해 gear 유지 확인 |
 | 보드 코드가 없으면 로직을 검토하기 어려움 | peripheral 호출을 입력·출력 인터페이스로 치환 | host compiler의 엄격한 warning 옵션으로 build |
 
-## 6. 빌드 및 테스트
+## 빌드 및 테스트
 
 Linux/macOS 또는 GCC/Clang이 설치된 환경에서 `make test`로 두 테스트를 빌드·실행할 수 있습니다(`make clean`으로 정리, `make test CC=clang`으로 컴파일러 변경). Make 없이 직접 실행하려면 다음과 같습니다.
 
@@ -133,7 +129,7 @@ gcc -std=c11 -Wall -Wextra -Werror -pedantic \
 | IRQ, AGT/GPT timer, PWM, ADC, UART, CAN, DAC, FND | 보드에서 사용 | 포함하지 않음 (검증 범위 밖) |
 | 시나리오별 통과 기록 | 빌드 산출물은 있으나 시나리오별 통과 로그는 남아 있지 않음 | — |
 
-## 7. 수업 범위
+## 수업 범위
 
 | 구분 | 확인된 주제 | 공개 처리 |
 |---|---|---|
@@ -145,7 +141,7 @@ gcc -std=c11 -Wall -Wextra -Werror -pedantic \
 
 상세 목록은 [`docs/lab-index.md`](docs/lab-index.md)에 정리했습니다.
 
-## 8. 저장소 구조
+## 저장소 구조
 
 ```text
 .
@@ -167,7 +163,7 @@ gcc -std=c11 -Wall -Wextra -Werror -pedantic \
 └─ README.en.md
 ```
 
-## 9. 한계와 공개 범위
+## 한계와 공개 범위
 
 - 이 저장소만으로 RA6M3 보드에 flash할 수 없습니다.
 - hardware pin map, FSP instance와 peripheral adapter를 대상 보드에 맞게 다시 구성해야 합니다.
@@ -175,6 +171,6 @@ gcc -std=c11 -Wall -Wextra -Werror -pedantic \
 - Renesas FSP/RA 생성 source, IDE metadata, 수업 PDF·예제·설치 파일과 sample video를 포함하지 않습니다.
 - 개인 식별정보가 포함된 제출 파일명과 원본 PCM 음원을 제외했습니다.
 
-## 10. Attribution
+## 출처와 공개 범위
 
 이 저장소의 공개 core와 test는 개인 수업 제출물에서 직접 구현한 애플리케이션 로직을 분리한 것입니다. Renesas FSP 생성 코드와 강의 제공 skeleton은 포함하지 않으며, 해당 자료에 대한 새로운 라이선스나 사용 권한을 부여하지 않습니다.
